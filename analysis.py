@@ -566,7 +566,7 @@ class AnalyzeLiveLF(Routine):
         # Undo flatfield correction
         crit["gainLive"] /= np.abs(ff)
 
-        store.set(self.outputs.get('lf_live'), crit)
+        store.set(self.outputs.get('results'), crit)
 
 
     def lowFreqAnal(self, fdata, sel, frange, df, nsamps, scan_freq,
@@ -749,7 +749,7 @@ class GetDriftErrors(Routine):
             "DELive": rms
         }
 
-        store.set(self.outputs.get('drift'), results)
+        store.set(self.outputs.get('results'), results)
 
 
 class AnalyzeLiveMF(Routine):
@@ -815,7 +815,7 @@ class AnalyzeLiveMF(Routine):
             "MFELive": rms
         }
 
-        store.set(self.outputs.get('mf_live'), results)
+        store.set(self.outputs.get('results'), results)
 
 
 class AnalyzeHF(Routine):
@@ -919,7 +919,7 @@ class AnalyzeHF(Routine):
 
         results["rmsDark"] = rms
 
-        store.set(self.outputs.get('hf'), results)
+        store.set(self.outputs.get('results'), results)
 
     def highFreqAnal(self, fdata, sel, frange, nsamps, nmodes=0, highOrder=False,
                      scanParams=None):

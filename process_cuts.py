@@ -214,7 +214,7 @@ lf_live_params = {
         'cal': 'calData'
     },
     'outputs': {
-        'lf_live': 'lf_live',
+        'results': 'lf_live',
     },
     'cancelSync': True,
     'doubleMode': False,
@@ -244,7 +244,7 @@ de_params = {
         'scan': 'scan_params',
     },
     'outputs': {
-        'drift': 'drift',
+        'results': 'drift',
     },
     'driftFilter': 0.036,
     'nmodes': 3,
@@ -260,7 +260,7 @@ mf_params = {
         'scan': 'scan_params',
     },
     'outputs': {
-        'mf_live': 'mf_live'
+        'results': 'mf_live'
     },
     'midFreqFilter': [0.3, 1.0],
     'nmodes': 8,
@@ -276,7 +276,7 @@ hf_params = {
         'scan': 'scan_params',
     },
     'outputs': {
-        'hf': 'hf'
+        'results': 'hf'
     },
     'getPartial': False,
     'highFreqFilter': [9.0, 19.0],
