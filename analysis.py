@@ -232,13 +232,27 @@ class AnalyzeTemperature(Routine):
 
 class AnalyzeDarkLF(Routine):
     def __init__(self, **params):
+        """Analyze the low frequency data and look at the 
+        dark detectors only. It calculates properties such
+        as corrDark, normDark, gainDark
+
+        Inputs:
+            tod: TOD data
+            fft: fourior transformed TOD data
+            dets: detector lists
+            scan: scan parameters
+        Outputs:
+            results: 
+                corrDark: corr for dark detectors
+                normDark: norm for dark detectors
+                gainDark: gain for dark detectors
+        """
         Routine.__init__(self)
         self.inputs = params.get('inputs', None)
         self.outputs = params.get('outputs', None)
         self._dets = params.get('dets', None)
         self._fft_data = params.get('fft_data', None)
         self._tod = params.get('tod', None)
-        self._output_key = params.get('output_key', None)
         self._scan = params.get('scan', None)
         self._freqRange = params.get('freqRange', None)
         self._double_mode = params.get('doubleMode', False)
@@ -318,7 +332,7 @@ class AnalyzeDarkLF(Routine):
         results["normDark"] = mnorm_mean.data
 
         # save to the data store
-        store.set(self.outputs.get('lf_dark'), results)
+        store.set(self.outputs.get('results'), results)
         
     def lowFreqAnal(self, fdata, sel, frange, df, nsamps, scan_freq):
         """Find correlations and gains to the main common mode over a
@@ -372,6 +386,23 @@ class AnalyzeDarkLF(Routine):
 
 class AnalyzeLiveLF(Routine):
     def __init__(self, **params):
+        """Analyze the low frequency data and look at the 
+        live detectors only. It calculates properties such
+        as corrLive, normLive, gainLive and darkRatioLive.
+
+        Inputs:
+            tod: TOD data
+            fft: fourior transformed TOD data
+            dets: detector lists
+            scan: scan parameters
+            cal: calibration data
+        Outputs:
+            results: 
+                corrLive: corr for live detectors
+                normLive: norm for live detectors
+                gainLive: gain for live detectors
+                darkRatioLive: dark ratio of live detectors
+        """
         Routine.__init__(self)
         self.inputs = params.get('inputs', None)
         self.outputs = params.get('outputs', None)
@@ -658,8 +689,18 @@ class AnalyzeLiveLF(Routine):
 
 class GetDriftErrors(Routine):
     def __init__(self, **params):
-        """This routine obtains the pickle parameter DELive by performing
-        a high frequency analysis on the slow modes"""
+        """This routine obtains the pickle parameter DELive by performing a
+        high frequency analysis on the slow modes
+        
+        Inputs:
+            tod: TOD data
+            dets: detector lists
+            fft: fft data
+            scan: scan parameters
+        Outputs:
+            results:
+                DELive: drift error for live detectors
+        """
         Routine.__init__(self)
         self.inputs = params.get('inputs', None)
         self.outputs = params.get('outputs', None)
@@ -714,7 +755,17 @@ class GetDriftErrors(Routine):
 class AnalyzeLiveMF(Routine):
     def __init__(self, **params):
         """This routine looks at the mid-frequency and perform a 
-        high-freq like analysis to get the pickle parameter MFE"""
+        high-freq like analysis to get the pickle parameter MFE
+
+        Inputs:
+            tod: TOD data
+            dets: detector lists
+            fft: fft data
+            scan: scan parameters
+        Outputs:
+            results:
+                MFELive: mid frequency error for live detectors
+        """
         Routine.__init__(self)
         self.inputs = params.get('inputs', None)
         self.outputs = params.get('outputs', None)
@@ -770,7 +821,19 @@ class AnalyzeLiveMF(Routine):
 class AnalyzeHF(Routine):
     def __init__(self, **params):
         """This routine analyzes both live and dark detectors in
-        the high frequency band"""
+        the high frequency band. It calculates properties such as
+        rmsLive, skewLive, kurtLive and their dark equivalent
+
+        Inputs:
+            tod: TOD data
+            dets: detector lists
+            fft: fft data
+            scan: scan parameters
+        Outputs:
+            results:
+                rmsLive, skewLive, kurtLive, rmsDark, skewLive, 
+                kurtLive
+        """
         Routine.__init__(self)
         self.inputs = params.get('inputs', None)
         self.outputs = params.get('outputs', None)
