@@ -41,6 +41,28 @@ class LoadTOD(Routine):
         store.set("tod", tod)
 
 
+class CheckTODLength(Routine):
+    def __init__(self, fmin, min_periods=0):
+        """Check that the length of TOD satisfy a certain requirment
+
+        Args:
+            fmin: minimum frequency
+            min_periods: minimum number of periods (default 0)
+        """
+        Routine.__init__(self)
+        self._fmin = fmin
+        self._min_periods = min_periods
+
+    def execute(self, store):
+        # get tod
+        tod = store.get("tod")
+        # calculate minimum length
+        min_length = 1 / self._fmin * self._min_periods
+        # raise error when the TOD is too short
+        if min_length > tod.ctime[-1] - tod.ctime[0]:
+            raise RuntimeError("TOD too short to perform LF analysis")
+
+
 class FouriorTransform(Routine):
     def __init__(self, **params):
         Routine.__init__(self)
