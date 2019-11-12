@@ -6,6 +6,40 @@ from todloop import Routine
 
 from utils import *
 
+class LoadTOD(Routine):
+    def __init__(self, sample_end=None, load_params={}):
+        """A routine to load TOD. The data is stored by
+        default into the key 'tod' in data store.
+
+        Args:
+            sample_end (int): (default None)
+            load_params: user-defined loading parameters (default {})
+        """
+        Routine.__init__(self)
+        self._load_params = load_params
+        if sample_end:
+            self._end = -sample_end
+
+    def execute(self, store):
+        # get obs name
+        obs = self.get_name()
+        # get offset from find rebias procedure
+        offset = store.get("offset")
+        # define load parameters
+        params = {
+            'filename': obs,
+            'fix_sign': True,
+            'start': offset,
+            'end': self._end,
+            'repair_pointing': True
+        }
+        # update user defined load parameters
+        params.update(self._load_params)
+        # get tod
+        tod = moby2.scripting.get_tod(params)
+        # save tod into data store
+        store.set("tod", tod)
+
 
 class FouriorTransform(Routine):
     def __init__(self, **params):
@@ -116,7 +150,7 @@ class GetDetectors(Routine):
             exclude = tod.info.array_data.select_inner({
                 'det_uid': _exclude['det_uid']
             }, mask = True, det_uid = dets)
-            
+
         # if the given list is based on matrix source
         else:
             exclude = tod.info.array_data.select_inner({
@@ -138,7 +172,7 @@ class GetDetectors(Routine):
             dark_candidates = tod.info.array_data.select_inner({
                 'det_uid': _dark['det_uid']
             }, mask = True, det_uid = dets)
-            
+
         # if the list is based on matrix source
         else:
             dark_candidates = tod.info.array_data.select_inner({
@@ -152,16 +186,16 @@ class GetDetectors(Routine):
             live_candidates = tod.info.array_data.select_inner({
                 'det_uid': _live['det_uid']
             }, mask = True, det_uid = dets)
-            
+
         # if the list is based on matrix source
         else:
             live_candidates = tod.info.array_data.select_inner({
                 'row': _live['rows'],
                 'col': _live['cols']
             }, mask = True, det_uid = dets)
-    
+
         # filter zero detectors
-        # mark zero detectors as 1, otherwise 0 
+        # mark zero detectors as 1, otherwise 0
         self.logger.info('Finding zero detectors')
         zero_sel = ~tod.data[:,::100].any(axis=1)
 
@@ -206,17 +240,17 @@ class GetDetectors(Routine):
         elif source == "individual":
             # load excludable detector list
             exclude = moby2.util.MobyDict.from_file(self._exclude)
-            
+
             # load dark detector list
             dark = moby2.util.MobyDict.from_file(self._dark)
-            
+
             # load live detectors
             liveCandidates = moby2.util.MobyDict.from_file(self._live)
-            
+
         else:
             raise "Unknown detector params source"
-        
-        return exclude, dark, liveCandidates        
+
+        return exclude, dark, liveCandidates
 
 
 class CalibrateTOD(Routine):
@@ -235,19 +269,19 @@ class CalibrateTOD(Routine):
         #####################################################
         # get responsivities and flatfield for calibration  #
         #####################################################
-        
+
         # get responsivity
         resp = products.get_calibration(self._config, tod.info)
 
         # select only responsive detectors
         respSel = (resp.cal != 0.0)
-        
+
         # get flatfield and a selection mask
         flatfield_object = moby2.detectors.RelCal.from_dict(self._flatfield)
         ffSel, ff = flatfield_object.get_property('cal',
                                                   det_uid=tod.info.det_uid,
                                                   default=1.)
-        
+
         # get stable detectors
         _, stable = flatfield_object.get_property('stable',
                                                   det_uid=tod.info.det_uid,
@@ -268,10 +302,10 @@ class CalibrateTOD(Routine):
         else:
             ffRMS = np.zeros_like(tod.info.dets)
 
-        # summarize all the calibration data into a dictionary 
+        # summarize all the calibration data into a dictionary
         calData = {
             "resp": resp.cal,
-            "respSel": respSel,            
+            "respSel": respSel,
             "ff": ff,
             "ffRMS": ffRMS,
             "ffSel": ffSel,
@@ -285,13 +319,13 @@ class CalibrateTOD(Routine):
         ########################################################
         # calibrate TOD to pW using responsivity and flatfield #
         ########################################################
-        
+
         cal = calData['cal']
-        
-        # apply to all except for original dark detectors        
+
+        # apply to all except for original dark detectors
         orig_dark = store.get(self.inputs.get('dets'))['dark_candidates']
         s = ~orig_dark
-        
+
         if self._calibrateTOD:
             self.logger.info("Calibrating TOD...")
             moby2.libactpol.apply_calibration(tod.data,
@@ -301,12 +335,10 @@ class CalibrateTOD(Routine):
             calData['calibrated'] = True
 
         # report error if calibration is unsuccessful
-        if not(np.any(calData["calSel"])): 
-            self.logger.error('moby', 0, "ERROR: no calibration for this TOD") 
+        if not(np.any(calData["calSel"])):
+            self.logger.error('moby', 0, "ERROR: no calibration for this TOD")
             return 1
 
         # save to data store
         store.set(self.outputs.get('cal'), calData)
         store.set(self.outputs.get('tod'), tod)
-
-        

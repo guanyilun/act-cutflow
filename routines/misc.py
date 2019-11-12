@@ -58,4 +58,4 @@ class FindRebiasTime(Routine):
         self.logger.info("Total offset set to %d" %offset)
 
         # save into store
-        store['offset'] = offset
+        store.set('offset', offset)
