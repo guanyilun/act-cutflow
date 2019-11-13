@@ -6,6 +6,7 @@ from todloop import Routine
 
 from utils import *
 
+
 class LoadTOD(Routine):
     def __init__(self, sample_end=None, load_params={}):
         """A routine to load TOD. The data is stored by
@@ -19,6 +20,12 @@ class LoadTOD(Routine):
         self._load_params = load_params
         if sample_end:
             self._end = -sample_end
+
+    def initialize(self):
+        # as this will usually be the first routine, update user
+        # config here
+        user_config = moby2.util.get_user_config()
+        moby2.pointing.set_bulletin_A(params=user_config.get('bulletin_A_settings'))
 
     def execute(self, store):
         # get obs name
