@@ -48,12 +48,11 @@ class CutSources(Routine):
         self._shift_params = params.get('mask_shift_generator', None)
         self._depot_path = params.get('depot', None)
         self._write_depot = params.get('write_depot', False)
+        self._hdf_cuts = params.get("hdf_source_cuts", None)
 
     def initialize(self):
         # get the depot
         self._depot = moby2.util.Depot(self._depot_path)
-        user_config = moby2.util.get_user_config()
-        moby2.pointing.set_bulletin_A(params=user_config.get('bulletin_A_settings'))
 
     def execute(self, store):
         # retrieve tod
@@ -64,10 +63,22 @@ class CutSources(Routine):
             self._depot.get_full_path(
                 moby2.TODCuts, tag=self._tag_source, tod=tod))
 
+        # check if hdf source cuts are needed
+        if self.hdf_cuts and not sourceResult:
+            f = h5py.File(self._hdf_cuts, 'r', swmr=True)
+            if tod.info.basename in f:
+                grp = f[tod.info.basename]
+                flags_sources = moby2.tod.TODFlags.from_hdf(grp)
+                pos_cuts_sources = flags_sources.get_cuts('cut')
+                self._depot.write_object(pos_cuts_sources,
+                                         tag=self._tag_source,
+                                         force=True, tod=tod,
+                                         make_dirs=True)
+                sourceResult = True
+
         # if cuts exist, load it now
         if sourceResult:
             self.logger.info("Loading time stream cuts (%s)" % self._tag_source)
-
             # load source cut
             source_cuts = self._depot.read_object(
                 moby2.TODCuts, tag=self._tag_source, tod=tod)
@@ -79,55 +90,41 @@ class CutSources(Routine):
         elif self._source_list is not None:
             self.logger.info("Finding new source cuts")
 
-            # retrieve source list from the file given
-            with open(self._source_list, 'r') as f:
-                source_list = f.readlines()
-                source_list = [(s.strip('\n'), 'source') for s in source_list]
-
             # supply focal plane information to tod
             tod.fplane = products.get_focal_plane(self._pointing_par, tod.info)
+            pointint_shift = (0,0)
+            mask_params = self._mask_params
+            shift_params = self._shift_params
+
+            # check if shift is needed
+            if shift_params is not None:
+                pointint_shift = products.get_pointing_offset(
+                    shift_params, tod=tod, source_offset=True)
 
             # find sources that fall in the given TOD
             matched_sources = moby2.ephem.get_sources_in_patch(
-                tod=tod, source_list=source_list)
-
-            # check if shift is needed
-            if self._shift_params is not None:
-                # calculate pointing offset
-                offset = products.get_pointing_offset(
-                    self._shift_params, tod=tod, source_offset=True)
-
-                # check if offset is calculated successfully, if not give
-                # a zero offset
-                if offset is None:
-                    offset = (0., 0.)
-
-                # calculate a map size
-                if max(offset) > 20. / 60:
-                    self._mask_params['map_size'] = max(offset) + 10. / 60
-                self._mask_params['offset'] = offset
-
+                tod=tod, source_list=self._source_list)
             self.logger.info("matched sources: %s" % matched_sources)
 
             # create a placeholder cut object to store our source cuts
             pos_cuts_sources = moby2.TODCuts.for_tod(tod, assign=False)
+            pos_cut_dict = {}
 
             # process source cut for each source
             for source in matched_sources:
                 # compute the source cut associated with the source
-                source_cut = moby2.tod.get_source_cuts(
-                    tod, source[1], source[2], **self._mask_params)
-                # merge the source cut to the total cuts
-                pos_cuts_sources.merge_tod_cuts(source_cut)
-
-            # fill the source cuts to the tod
-            moby2.tod.fill_cuts(tod, pos_cuts_sources, no_noise=self._no_noise)
+                pos_cut_dict[source[0]] = moby2.tod.get_source_cuts(
+                    tod, source[1], source[2], **mask_params)
+                pos_cuts_sources.merge_tod_cuts(pos_cut_dict[source[0]])
 
             # write to depot, copied from moby2, not needed here
             if self._write_depot:
                 self._depot.write_object(pos_cuts_sources,
-                                         tag=params.get('tag_source'),
+                                         tag=self._tag_source,
                                          force=True, tod=tod, make_dirs=True)
+
+            # fill the source cuts to the tod
+            moby2.tod.fill_cuts(tod, pos_cuts_sources, no_noise=self._no_noise)
 
         # pass the processed tod back to data store
         store.set(self.outputs.get('tod'), tod)
