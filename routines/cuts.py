@@ -4,8 +4,9 @@ import numpy as np
 import moby2
 from moby2.scripting import products
 from moby2.analysis import hwp
-from todloop import Routine
+from moby2.analysis.tod_ana import pathologies
 
+from todloop import Routine
 from utils import *
 
 
@@ -264,7 +265,8 @@ class RemoveSyncPickup(Routine):
 
                 # write sync object to disk
                 if self._write_depot:
-                    self._depot.write_object(ss, tag=self._tag_sync, tod=tod, make_dirs=True,
+                    self._depot.write_object(ss, tag=self._tag_sync,
+                                             tod=tod, make_dirs=True,
                                              force=True)
 
             ss.removeAll()
@@ -305,7 +307,7 @@ class CutPartial(Routine):
         # if we want to skip creating partial cuts, load from depot
         if skip_partial:
             # Read existing result
-            self.logger.info("Loading time stream cuts (%s)" % self._tag_partial)
+            self.logger.info("Loading partial cuts (%s)" % self._tag_partial)
             cuts_partial = self._depot.read_object(
                 moby2.TODCuts, tag=self._tag_partial, tod=tod)
         # otherwise generate partial cuts now
@@ -403,3 +405,37 @@ class FindJumps(Routine):
 
         # save to data store
         store.set(self.outputs.get('jumps'), crit)
+
+
+class FindPathologies(Routine):
+    def __init__(self, **params):
+        Routine.__init__(self)
+        self._depot_path = params.get('depot', None)
+        self._tag_patho = params.get('tag_patho', None)
+        self._skip_partial = params.get('skip_partial',True)
+        self._force_patho = params.get('force_patho', False)
+        self._pathop = params.get('pathop', {})
+
+    def initialize(self):
+        # get the depot
+        self._depot = moby2.util.Depot(self._depot_path)
+
+    def execute(self, store):
+        tod = store.get("tod")
+        pathoResult = os.path.exists(
+            self._depot.get_full_path(pathologies.Pathologies,
+                                      tag=self._tag_patho, tod=tod))
+        skip_patho = self._skip_partial and not self._force_patho and pathoResult
+
+        if skip_patho:
+            self.logger.info("Using old pathologies result")
+
+        else:
+            self.logger.info("Finding new pathologies")
+            pa = pathologies.Pathologies(tod, self._pathop,
+                                         noExclude=True)
+            err = pa.findPathologies()
+            self.logger.info("err = %d" % err)
+            if err == 0:
+                self._depot.write_object(pa, tag=self._tag_patho,
+                                         force=True, tod=tod, make_dirs=True)
