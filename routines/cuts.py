@@ -146,17 +146,15 @@ class CutPlanets(Routine):
 
     def initialize(self):
         self._depot = moby2.util.Depot(self._depot_path)
-        user_config = moby2.util.get_user_config()
-        moby2.pointing.set_bulletin_A(params=user_config.get('bulletin_A_settings'))
 
     def execute(self, store):
+        # get tod
         tod = store.get(self.inputs.get('tod'))
 
         # check if planetCuts exist
         planetResult = os.path.exists(
             self._depot.get_full_path(
                 moby2.TODCuts, tag=self._tag_planet, tod=tod))
-
 
         # if planetCuts exist load it into variable pos_cuts_planets
         if planetResult:
@@ -194,15 +192,15 @@ class CutPlanets(Routine):
 
             # a place holder cut object to store all planet cut
             pos_cuts_planets = moby2.TODCuts.for_tod(tod, assign=False)
+            pos_cut_dict = {}
 
             # process each planet source
             for source in matched_sources:
-
                 # calculate planet cut
-                planet_cut = moby2.tod.get_source_cuts(
+                pos_cut_dict[source[0]] = moby2.tod.get_source_cuts(
                     tod, source[1], source[2], **self._mask_params)
                 # merge it into the total cut
-                pos_cuts_planets.merge_tod_cuts(planet_cut)
+                pos_cuts_planets.merge_tod_cuts(pos_cut_dict[source[0]])
 
             if self._write_depot:
             # write planet cut to depot, copied from moby2, not needed
