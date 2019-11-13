@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import h5py
 
 import moby2
 from moby2.scripting import products
@@ -65,7 +66,7 @@ class CutSources(Routine):
                 moby2.TODCuts, tag=self._tag_source, tod=tod))
 
         # check if hdf source cuts are needed
-        if self.hdf_cuts and not sourceResult:
+        if self._hdf_cuts and not sourceResult:
             f = h5py.File(self._hdf_cuts, 'r', swmr=True)
             if tod.info.basename in f:
                 grp = f[tod.info.basename]

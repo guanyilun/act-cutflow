@@ -18,6 +18,7 @@ class LoadTOD(Routine):
         """
         Routine.__init__(self)
         self._load_params = load_params
+        self._end = sample_end
         if sample_end:
             self._end = -sample_end
 
@@ -115,7 +116,7 @@ class TransformTOD(Routine):
         self.inputs = params.get('inputs', None)
         self.outputs = params.get('outputs', None)
         self._remove_mean = params.get('remove_mean', True)
-        self._remove_median = params.get('remove_mediam', False)
+        self._remove_median = params.get('remove_median', False)
         self._detrend = params.get('detrend', True)
         self._remove_filter_gain = params.get('remove_filter_gain', False)
         self._n_downsample = params.get('n_downsample', None)

@@ -26,7 +26,7 @@ class FindRebiasTime(Routine):
         obs = self.get_name()
         # Find IV/rebias gap time
         ct = int(obs.split("/")[-1].split(".")[0])
-        ctimes = (ct-IV_wait,ct)
+        ctimes = (ct-self._IV_wait,ct)
         if products._get_instrument() == "actpol":
             from moby2.instruments import actpol as inst
         elif products._get_instrument() == "mbac":
@@ -42,7 +42,7 @@ class FindRebiasTime(Routine):
         else:
             recs = db.select_acqs(suffix='iv', ctime=ctimes)
             if len(recs) > 0:
-                offset_IV = (IV_wait - ct + recs[-1].ctime)*400
+                offset_IV = (self._IV_wait - ct + recs[-1].ctime)*400
             else:
                 offset_IV = 0
             self.logger.info("IV offset set to %d"%offset_IV)
