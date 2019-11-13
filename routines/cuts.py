@@ -9,6 +9,28 @@ from todloop import Routine
 from utils import *
 
 
+class CutMCE(Routine):
+    def __init__(self, **params):
+        """A routine that removes the MCE errors
+
+        Args:
+            no_noise (bool): whether to fill the cuts with noise
+                             (default True)
+        """
+        Routine.__init__(self)
+        self._no_noise = params.get('no_noise', True)
+
+    def execute(self, store):
+        # get tod
+        tod = store.get("tod")
+        # get mce cuts
+        mce_cuts = moby2.tod.get_mce_cuts(tod)
+        # fill the mce cuts
+        moby2.tod.fill_cuts(tod, mce_cuts, no_noise=self._no_noise)
+        # save the tod back to store
+        store.set("tod", tod)
+
+
 class CutSources(Routine):
     def __init__(self, **params):
         """A routine that cuts the point sources"""
