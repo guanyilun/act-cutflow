@@ -31,6 +31,7 @@ class LoadTOD(Routine):
     def execute(self, store):
         # get obs name
         obs = self.get_name()
+        self.logger.info("Loading TOD: %s..." % obs)
         # get offset from find rebias procedure
         offset = store.get("offset")
         # define load parameters

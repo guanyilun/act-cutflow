@@ -151,4 +151,4 @@ config = {
 loop.add_routine(FindPathologies(**config))
 
 # run loop
-loop.run(0,1)
+loop.run_parallel(0,4,n_workers=4)
