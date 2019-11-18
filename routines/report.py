@@ -2,6 +2,29 @@ from todloop import Routine
 import cPickle, h5py, os
 import numpy as np
 import copy
+from moby2.scripting import  pathologies_tools
+
+
+class PathologyReport(Routine):
+    def __init__(self, **params):
+        """This routine aims to generate a Pathology Report object
+        as is done for the moby2 script"""
+        Routine.__init__(self)
+        self.cutparam = params.get("cutparam", None)
+        self.report = None
+
+    def initialize(self):
+        self.report = pathologies_tools.reportPathologies(self.cutparam)
+        # update the depot file name with rank if needed
+        # if mpi, label depot file with the rank to avoid racing condition
+        if self.get_comm():
+            self.report.depot_file += '.%d' % self.get_rank()
+
+    def execute(self, store):
+        # get obs name
+        obs = self.get_name()
+        # append results
+        self.report.appendResult(obs)
 
 
 class Summarize(Routine):
@@ -15,7 +38,7 @@ class Summarize(Routine):
     def execute(self, store):
         # initialize an empty dictionary to store results
         results = {}
-        
+
         # retrieve all the calculated results
         for key in self.inputs.get('features'):
             results.update(store.get(key))
@@ -23,7 +46,7 @@ class Summarize(Routine):
         self.logger.info("Successfully processed: %s" % results.keys())
         store.set(self.outputs.get('report'), results)
 
-        
+
 class PrepareDataLabel(Routine):
     def __init__(self, **params):
         """Prepare an HDF5 data set that contains all relevant metedata
@@ -36,7 +59,7 @@ class PrepareDataLabel(Routine):
         self._group_name = params.get('group', None)
         self._downsample = params.get('downsample', 1)
         self._remove_mean = params.get('remove_mean', False)
-        
+
     def initialize(self):
         # load pickle file
         self.logger.info("Loading %s..." % self._pickle_file)
@@ -52,19 +75,19 @@ class PrepareDataLabel(Routine):
             # file doesn't exist
             self.logger.info("Creating %s..." % self._output_file)
             self._hf = h5py.File(self._output_file, 'w')
-            
+
         try:
-            self.logger.info("Creating group %s..." % self._group_name)            
+            self.logger.info("Creating group %s..." % self._group_name)
             self._group = self._hf.create_group(self._group_name)
         except ValueError:
             self.logger.info("%s exists, update instead" % self._group_name)
             self._group = self._hf[self._group_name]
-        
+
     def execute(self, store):
         # retrieve tod
         tod = store.get(self.inputs.get('tod'))
 
-        # retrieve the calculated statustics 
+        # retrieve the calculated statustics
         report = store.get(self.inputs.get('report'))
         keys = report.keys()
 
@@ -74,7 +97,7 @@ class PrepareDataLabel(Routine):
             self.logger.info("Remove means of the features...")
             for k in keys:
                 report[k] -= np.mean(report[k])
-        
+
         # get relevant metadata for this tod from pickle file
         tod_name = self.get_name()
         pickle_id = self._pickle_data['name'].index(tod_name)
@@ -89,7 +112,7 @@ class PrepareDataLabel(Routine):
                 data = tod.data[tes_det, ::self._downsample]
             else:
                 data = tod.data[tes_det]
-        
+
             # generate a unique detector id
             det_uid = '%d.%d' % (self.get_id(), tes_det)
 
@@ -103,15 +126,15 @@ class PrepareDataLabel(Routine):
             # save report to h5 file
             for k in keys:
                 dataset.attrs[k] = report[k][tes_det]
-                
+
             # save label
             dataset.attrs['label'] = int(self._pickle_data['sel'][tes_det, pickle_id])
 
         self.logger.info("Data saved in %s" % self._output_file)
- 
+
     def finalize(self):
         self._hf.close()
-        
+
 
 class PrepareDataLabelNew(Routine):
     def __init__(self, **params):
@@ -206,4 +229,3 @@ class PrepareDataLabelNew(Routine):
 
     def finalize(self):
         self._hf.close()
-

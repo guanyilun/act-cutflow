@@ -8,14 +8,15 @@ from routines.tod import LoadTOD, CheckTODLength, TransformTOD
 from routines.cuts import CutMCE, CutSources, CutPlanets, \
     RemoveSyncPickup, CutPartial, FindPathologies
 from routines.misc import FindRebiasTime
+from routines.report import PathologyReport
 
 # cut parameter files
-cutparam = "./params/cutparams_v0.par"
-cutParam = "./params/cutParams_v0.par"
+cutparam_file = "cutparams_v0.par"
+cutParam_file = "cutParams_v0.par"
 
 # load parameters from cutparam file
-cutparam = moby2.util.MobyDict.from_file(cutparam)
-cutParam = moby2.util.MobyDict.from_file(cutParam)
+cutparam = moby2.util.MobyDict.from_file(cutparam_file)
+cutParam = moby2.util.MobyDict.from_file(cutParam_file)
 
 # get useful parameters
 pathop = cutParam['pathologyParams']
@@ -149,6 +150,13 @@ config = {
     'pathop': pathop
 }
 loop.add_routine(FindPathologies(**config))
+
+# save pathology report
+# FIXME: only support the cutparam file in the same folder
+config = {
+    'cutparam': cutparam_file,
+}
+loop.add_routine(PathologyReport(**config))
 
 # run loop
 loop.run_parallel(0,4,n_workers=4)
