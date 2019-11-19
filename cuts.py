@@ -69,7 +69,7 @@ config = {
     'pointing_par': cutParam['pointing'],
     'mask_params': mask_params,
     'mask_shift_generator': shift_params,
-    'write_depot': False,
+    'write_depot': True,
 }
 loop.add_routine(CutSources(**config))
 
@@ -87,7 +87,7 @@ config = {
     'pointing_par': cutParam['pointing'],
     'mask_params': mask_params,
     'mask_shift_generator': shift_params,
-    'write_depot': False,
+    'write_depot': True,
 }
 loop.add_routine(CutPlanets(**config))
 
@@ -103,7 +103,7 @@ config = {
     'force_sync': cutparam.get('forceSync', False),
     'tag_sync': cutparam.get('tag_sync'),
     'depot': depot,
-    'write_depot': False
+    'write_depot': True
 }
 loop.add_routine(RemoveSyncPickup(**config))
 
@@ -121,7 +121,7 @@ config = {
     'include_mce': True,
     'depot': depot,
     'no_noies': no_noise,
-    'write': False
+    'write_depot': True
 }
 loop.add_routine(CutPartial(**config))
 
@@ -159,4 +159,4 @@ config = {
 loop.add_routine(PathologyReport(**config))
 
 # run loop
-loop.run_parallel(0,4,n_workers=4)
+loop.run_parallel(0,100,n_workers=5)
