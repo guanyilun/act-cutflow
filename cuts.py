@@ -30,6 +30,7 @@ loop = TODLoop()
 
 # add list of tod
 loop.add_tod_list(cutparam.get('source_scans'))
+loop.set_output_dir(cutparam.get('dirstats'))
 
 # find rebias time
 config = {
